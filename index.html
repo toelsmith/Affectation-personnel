@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Affectation du personnel</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
+    .header {
+      background: #005baa;
+      color: white;
+      padding: 12px;
+      font-size: 28px;
+      font-weight: bold;
+      text-align: center;
+    }
+    .main {
+      display: flex;
+      height: calc(100vh - 54px);
+    }
+    .canvas-container {
+      flex: 1;
+      position: relative;
+      overflow: auto;
+      background: white;
+      background-image: url("https://drive.google.com/uc?id=1kXJIPADFclxobFjVmZetDmx9VhSnVmyt");
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: top left;
+    }
+    .right-panel {
+      width: 220px;
+      background: #e0f7fa;
+      padding: 10px;
+      overflow-y: auto;
+      border-left: 2px solid #ccc;
+    }
+    .person {
+      background: #ffffff;
+      border: 1px solid #333;
+      margin-bottom: 6px;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: grab;
+      text-align: center;
+      font-size: 14px;
+    }
+    .zone {
+      position: absolute;
+      border-radius: 4px;
+      padding: 4px;
+      min-width: 100px;
+      min-height: 40px;
+      font-weight: bold;
+      font-size: 12px;
+      text-align: center;
+    }
+    .zone h4 {
+      margin: 0;
+      padding: 2px 4px;
+      font-size: 13px;
+      border-radius: 2px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.7);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">Affectation du personnel</div>
+  <div class="main">
+    <div class="canvas-container" id="canvas"></div>
+    <div class="right-panel" id="person-list"></div>
+  </div>
+  <script>
+    const zones = [
+      "1A", "1B", "1C", "1D", "1E", "1F", "2A", "2B", "2C", "2D", "2E", "2F",
+      "3A", "4A", "4B", "4D", "4E", "4F", "TESTEUR", "ZALANDO",
+      "PAV 1", "PAV 2", "MANUEL", "FLUX", "KANBAN", "INFORMATION", "PILOTE B14", "CHEF D'ÉQUIPE", "ESU", "GUIDE-FILE", "SERRE-FILE"
+    ];
+
+    const zonePositions = {
+      "MANUEL": [60, 60], "PAV 1": [200, 80], "PAV 2": [180, 220],
+      "4A": [520, 60], "PILOTE B14": [630, 160], "4D": [500, 210],
+      "4E": [630, 210], "4F": [750, 210], "4B": [630, 60],
+      "3A": [780, 60], "CHEF D'ÉQUIPE": [860, 160],
+      "2A": [420, 360], "2B": [550, 360], "2C": [680, 360],
+      "2D": [810, 360], "2E": [940, 360], "2F": [1070, 360],
+      "ZALANDO": [550, 510], "TESTEUR": [680, 510],
+      "1A": [420, 660], "1B": [550, 660], "1C": [680, 660],
+      "1D": [810, 660], "1E": [940, 660], "1F": [1070, 660],
+      "FLUX": [400, 120], "KANBAN": [520, 120],
+      "INFORMATION": [700, 160], "ESU": [180, 680],
+      "GUIDE-FILE": [290, 680], "SERRE-FILE": [400, 680]
+    };
+
+    const zoneColors = {
+      "1A": "#add8e6", "1B": "#add8e6", "1C": "#add8e6", "1D": "#add8e6", "1E": "#add8e6", "1F": "#add8e6",
+      "2A": "#c8e6c9", "2B": "#c8e6c9", "2C": "#c8e6c9", "2D": "#c8e6c9", "2E": "#c8e6c9", "2F": "#c8e6c9",
+      "3A": "#fff9c4",
+      "4A": "#ffe082", "4B": "#ffe082", "4D": "#ffe082", "4E": "#ffe082", "4F": "#ffe082",
+      "TESTEUR": "#ffccbc", "ZALANDO": "#ffccbc",
+      "PAV 1": "#e1bee7", "PAV 2": "#e1bee7", "MANUEL": "#e1bee7",
+      "FLUX": "#ce93d8", "KANBAN": "#ce93d8",
+      "PILOTE B14": "#a5d6a7", "CHEF D'ÉQUIPE": "#fff59d", "INFORMATION": "#ffe0b2",
+      "ESU": "#90caf9", "GUIDE-FILE": "#ef9a9a", "SERRE-FILE": "#ef5350"
+    };
+
+    const canvas = document.getElementById("canvas");
+    zones.forEach(zone => {
+      const pos = zonePositions[zone] || [0, 0];
+      const color = zoneColors[zone] || "#eee";
+      const div = document.createElement("div");
+      div.className = "zone";
+      div.style.top = pos[0] + "px";
+      div.style.left = pos[1] + "px";
+      div.style.background = color;
+      div.innerHTML = `<h4>${zone}</h4>`;
+      canvas.appendChild(div);
+    });
+
+    const personnes = [
+      "DUBOIS CELINE", "PRIAM Ketty", "GIRARD LAURA", "KOZLOWSKI AUDREY",
+      "GEORGES Florent", "PERRIN Sébastien", "PETIT MAGALIE", "SOENEN CLAUDE"
+    ];
+    const list = document.getElementById("person-list");
+    personnes.forEach(nom => {
+      const div = document.createElement("div");
+      div.className = "person";
+      div.setAttribute("draggable", "true");
+      div.textContent = nom;
+      list.appendChild(div);
+    });
+    bindDragEvents();
+
+    function bindDragEvents() {
+      const persons = document.querySelectorAll('.person');
+      const zones = document.querySelectorAll('.zone');
+
+      persons.forEach(p => {
+        p.addEventListener('dragstart', e => {
+          e.dataTransfer.setData('text/plain', p.outerHTML);
+          setTimeout(() => p.remove(), 0);
+        });
+      });
+
+      zones.forEach(z => {
+        z.addEventListener('dragover', e => e.preventDefault());
+        z.addEventListener('drop', e => {
+          e.preventDefault();
+          const data = e.dataTransfer.getData('text/plain');
+          z.insertAdjacentHTML('beforeend', data);
+          initNewPerson(z);
+        });
+      });
+    }
+
+    function initNewPerson(container) {
+      const latest = container.querySelectorAll('.person');
+      latest.forEach(p => {
+        if (!p.dataset.bound) {
+          p.dataset.bound = "true";
+          p.setAttribute('draggable', 'true');
+          p.addEventListener('dragstart', e => {
+            e.dataTransfer.setData('text/plain', p.outerHTML);
+            setTimeout(() => p.remove(), 0);
+          });
+        }
+      });
+    }
+  </script>
+</body>
+</html>
